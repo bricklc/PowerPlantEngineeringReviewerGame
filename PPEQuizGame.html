@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Plant Engineering Review</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: white; }
+        .hidden { display: none; }
+        .feedback { padding: 30px; font-size: 70px; color: white; }
+        .correct { background-color: green; }
+        .wrong { background-color: red; }
+        table { width: 80%; margin: auto; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Power Plant Engineering Review</h1>
+    <p>Current High Score: <span id="high-score">0</span></p>
+    <p>Current Streak: <span id="current-streak">0</span></p>
+    <div id="main-menu">
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showStats()">View Statistics</button>
+        <button onclick="showFormulaSelection()">Select Formulas</button>
+    </div>
+    <div id="formula-selection" class="hidden">
+        <h2>Select Formulas to Practice</h2>
+        <form id="formula-list"></form>
+        <button onclick="saveFormulaSelection()">Start Practice</button>
+        <button onclick="goToMenu()">Back</button>
+    </div>
+    
+    <div id="game-container" class="hidden">
+        <h2 id="question"></h2>
+        <input type="text" id="answer" placeholder="Enter your answer" onkeypress="handleKeyPress(event)">
+        <button onclick="checkAnswer()">Submit</button>
+        <p id="feedback" class="feedback hidden"></p>
+    </div>
+    <div id="stats-container" class="hidden">
+        <h2>Statistics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Formula</th>
+                    <th>Correct</th>
+                    <th>Attempts</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+        </table>
+        <button onclick="goToMenu()">Back</button>
+    </div>
+    <script>
+        let highScore = 0, currentStreak = 0;
+        let stats = {};
+        let selectedFormulas = [];
+        const formulas = {
+    "E.total": ["L.ave * h", "Lave * h", "Lave*h", "L.ave*h", "L ave * h", "Lave*h", "L.ave*h", "Lave × h", "L.ave × h"],
+    "ROP": ["RC - L.max", "RC - Lmax", "RC-L.max", "RC-Lmax", "RC−L.max", "RC−Lmax", "RC minus L.max", "RC minus Lmax"],
+    "h": ["h' + h''", "h1 + h2", "h_1 + h_2", "h′ + h″", "h' + h''", "h1+h2", "h_1+h_2", "h′+h″", "h1 plus h2", "h' plus h''"],
+    "Load Factor (LF)": ["L.ave / L.max", "Lave / Lmax", "L.ave ÷ L.max", "Lave/Lmax", "L.ave/L.max", "L.ave ÷ L.max", "L ave / L max", "L.ave ÷ L.max", "Lave divided by Lmax", "L.ave divided by L.max"],
+    "Utility Factor (UF)": ["L.max / RC", "Lmax/RC", "L.max/RC", "lmax/RC", "lmax/rc", "Lmax ÷ RC", "L.max ÷ RC", "L.max divided by RC", "L max over RC"],
+    "Plant Operation Factor": ["h' / h", "h′ / h", "h prime over h", "h' ÷ h", "h divided by h", "h'/h", "h' ÷ h"],
+    "Plant Capacity Factor (CF)": ["L.ave / RC", "Lave / RC", "L.ave ÷ RC", "L.ave over RC", "L.ave divided by RC", "L.ave/RC", "Lave/RC", "L ave / RC"],
+    "Demand Factor (DF)": ["max demand / total connected load", "max demand ÷ total connected load", "max demand over total load", "max demand divided by total connected load", "maxdemand/totalconnectedload"],
+    "Diversity Factor (DIV.F)": ["sum of indiv max demand / simul max demand", "sum of individual max demand / simultaneous max demand", "Σ max demand / simultaneous max demand", "sum of individual peak demand ÷ simultaneous peak demand", "sum(individual max demand)/simultaneous max demand"],
+    "Use Factor or Output Factor": ["E / E'", "USE.F", "OUT.F", "E ÷ E'", "E over E'", "E divided by E'", "E/E'", "E′ ÷ E", "E ′ / E"],
+    "E'": ["RC * h'", "rc*h", "RC × h'", "RC*h'", "RC ⋅ h'", "RC times h'", "RC multiplied by h'", "RC × h′", "RC * h ′", "RC*h′", "RC ⋅ h′"],
+    "E.total Area under load curve ": [
+    "sum((l1+l2)/2)*h-interval",
+    "sum((l1+l2)/2)*d-h","sum((l1+l2)/2)*dh",
+    "sum((l1+l2)/2)*delta-h",
+    "sum((li+li+1)/2)*h-interval", "sum((li+li+1)/2)*d-h", "sum((li+li+1)/2)*delta-h", "sum((L1+L2)/2)*h-interval", "sum((L1+L2)/2)*d-h", "sum((L1+L2)/2)*delta-h", "sum((Li+Li+1)/2)*h-interval", "sum((Li+Li+1)/2)*d-h", "sum((Li+Li+1)/2)*delta-h"],
+    "Total number of hours for: 1 year": ["8760", "8760hrs", "8760hr", "8760 hrs", "8760 hr"],
+    "Total number of hours for: 6 months": ["4380", "4380hrs"],
+    "Total number of hours for: 1 month": ["720", "720hrs", "720 hrs"]
+
+};
+
+
+        function startGame() {
+            currentStreak = 0;
+            updateStreakDisplay();
+            toggleView("main-menu", false);
+            toggleView("game-container", true);
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            document.getElementById("answer").value = ""; // Clear input field
+
+            let keys = selectedFormulas.length > 0 ? selectedFormulas : Object.keys(formulas); // Use selected or all formulas
+            let key = keys[Math.floor(Math.random() * keys.length)];
+
+            document.getElementById("question").textContent = key;
+            document.getElementById("answer").dataset.correct = formulas[key].join("|");
+        }
+
+
+        function checkAnswer() {
+            let input = document.getElementById("answer").value.trim().toLowerCase().replace(/\s+/g, "");
+            let correctAnswers = document.getElementById("answer").dataset.correct.split("|").map(ans => ans.toLowerCase().replace(/\s+/g, ""));
+
+            if (correctAnswers.includes(input)) {
+                currentStreak++;
+                if (currentStreak > highScore) {
+                    highScore = currentStreak;
+                    document.getElementById("high-score").textContent = highScore;
+                }
+                feedback(true);
+                setTimeout(generateQuestion, 1500); // Move to next question only if correct
+            } else {
+                currentStreak = 0;
+                feedback(false);
+                // User can try again, so do NOT generate a new question
+            }
+            updateStreakDisplay();
+        }
+
+
+        function feedback(correct) {
+            let fb = document.getElementById("feedback");
+            fb.textContent = correct ? "CORRECT!!! 😁🎉🎉🎉😃" : "WRONG. 🤮🤮🤮👎";
+            fb.className = `feedback ${correct ? "correct" : "wrong"}`;
+            document.getElementById("answer").value = "";
+            setTimeout(() => { fb.className = "feedback hidden"; }, 1500); //generateQuestion() was removed
+        }
+
+        function showStats() {
+            toggleView("main-menu", false);
+            toggleView("stats-container", true);
+            let statsBody = document.getElementById("stats-body");
+            statsBody.innerHTML = "";
+            
+            for (let key in stats) {
+                let correct = stats[key].correct;
+                let attempts = stats[key].attempts;
+                let accuracy = attempts > 0 ? ((correct / attempts) * 100).toFixed(2) + "%" : "0%";
+                statsBody.innerHTML += `<tr><td>${key}</td><td>${correct}</td><td>${attempts}</td><td>${accuracy}</td></tr>`;
+            }
+        }
+
+        function showFormulaSelection() {
+            let formulaList = document.getElementById("formula-list");
+            formulaList.innerHTML = ""; // Clear previous entries
+
+            // If no formulas were selected before, select all by default
+            if (selectedFormulas.length === 0) {
+                selectedFormulas = Object.keys(formulas);
+            }
+
+            Object.keys(formulas).forEach(formula => {
+                let isChecked = selectedFormulas.includes(formula) ? "checked" : ""; // Keep selection state
+                let label = document.createElement("label");
+                label.innerHTML = `<input type="checkbox" value="${formula}" ${isChecked}> ${formula}`;
+                formulaList.appendChild(label);
+                formulaList.appendChild(document.createElement("br"));
+            });
+
+            toggleView("main-menu", false);
+            toggleView("formula-selection", true);
+        }
+
+
+
+        function saveFormulaSelection() {
+            selectedFormulas = [];
+            document.querySelectorAll("#formula-list input:checked").forEach(checkbox => {
+                selectedFormulas.push(checkbox.value);
+            });
+
+            if (selectedFormulas.length === 0) {
+                alert("Please select at least one formula.");
+                return;
+            }
+
+            goToMenu();
+        }
+
+        function goToMenu() {
+            toggleView("formula-selection", false);
+            toggleView("game-container", false);
+            toggleView("main-menu", true);
+        }
+
+
+        function updateStreakDisplay() {
+            document.getElementById("current-streak").textContent = currentStreak;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        }
+
+        function toggleView(id, show) {
+            document.getElementById(id).classList.toggle("hidden", !show);
+        }
+    </script>
+</body>
+</html>
