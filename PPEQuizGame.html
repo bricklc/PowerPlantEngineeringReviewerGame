@@ -22,6 +22,7 @@
         <button onclick="startGame()">Start Game</button>
         <button onclick="showStats()">View Statistics</button>
         <button onclick="showFormulaSelection()">Select Formulas</button>
+        
     </div>
     <div id="formula-selection" class="hidden">
         <h2>Select Formulas to Practice</h2>
@@ -34,6 +35,7 @@
         <h2 id="question"></h2>
         <input type="text" id="answer" placeholder="Enter your answer" onkeypress="handleKeyPress(event)">
         <button onclick="checkAnswer()">Submit</button>
+        <button onclick="goToMenu()">Return to Main Menu</button>
         <p id="feedback" class="feedback hidden"></p>
     </div>
     <div id="stats-container" class="hidden">
@@ -94,6 +96,10 @@
             let key = keys[Math.floor(Math.random() * keys.length)];
 
             document.getElementById("question").textContent = key;
+            document.getElementById("question").style.fontSize = "48px"; // Makes it bigger
+            document.getElementById("question").style.fontWeight = "bold"; // Makes it stand out
+            document.getElementById("question").style.textAlign = "center"; // Centers text
+
             document.getElementById("answer").dataset.correct = formulas[key].join("|");
         }
 
@@ -182,6 +188,7 @@
             toggleView("formula-selection", false);
             toggleView("game-container", false);
             toggleView("main-menu", true);
+            toggleView("stats-container", false);
         }
 
 
